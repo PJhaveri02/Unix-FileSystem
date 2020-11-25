@@ -1,0 +1,149 @@
+# Name: Pranay Jhaveri
+# Login: pjha607
+
+
+
+##################
+Question 1:
+##################
+
+When running both commands (i.e. "ls -l source" and "ls -l mount") the output from both directories were virtually identical. All the files (i.e. one, two, and three) listed in the "source" directory were also listed in the "mount" directory. The reason for this similarity in output is because the "mount" directory references the "source" directory. Therefore, the two directories ("mount" and "source") are linked together in a bidirectional manner (i.e. both directories can be used to read and modify the same files and any changes made to one directory will be persisted into the other). However, it should be noted that the three files (one, two, and three) actually only exist in the "source" directory. The "mount" directory only references the files, hence, the files can also be accessed through the "mount" directory.    
+
+
+
+##################
+Question 2:
+##################
+
+#### Command 1: cd mount ####
+
+DEBUG:fuse.log-mixin:-> getattr / (None,)
+DEBUG:fuse.log-mixin:<- getattr {'st_atime': 1602034712.3545358, 'st_ctime': 1602034706.5305607, 'st_gid': 1000, 'st_mode': 16893, 'st_mtime': 1602034706.5305607, 'st_nlink': 3, 'st_size': 4096, 'st_uid': 1000}
+DEBUG:fuse.log-mixin:-> access / (1,)
+DEBUG:fuse.log-mixin:<- access None
+
+The command gets the file attributes associated with "/". In this scenario, "/" is the "mount" directory. The output from the "getattr" method is the key value pairs of the attributes of the "mount" directory. "st_atime" is the last time the file was accessed, "st_ctime" is time which the which the directory was created, "st_gid" is the group id of the directory, "st_mode" is the access mode of the directory/file, "st_mtime" is the last modified time of the file/directory, "st_nlink" is the total number of hard links to the directory, "st_size" is the total size of the directory in bytes, and "st_uid" is the user id of the directory. The "access" method checks whether the user can access the mount directory. As the "access" method returns "None", this means that access to the mount directory is approved. 
+
+
+#### Command 2: cat > newfile ####
+
+DEBUG:fuse.log-mixin:-> getattr / (None,)
+DEBUG:fuse.log-mixin:<- getattr {'st_atime': 1602034712.3545358, 'st_ctime': 1602034706.5305607, 'st_gid': 1000, 'st_mode': 16893, 'st_mtime': 1602034706.5305607, 'st_nlink': 3, 'st_size': 4096, 'st_uid': 1000}
+DEBUG:fuse.log-mixin:-> getattr /newfile (None,)
+DEBUG:fuse.log-mixin:<- getattr "[Errno 2] No such file or directory: 'source/newfile'"
+DEBUG:fuse:FUSE operation getattr raised a <class 'FileNotFoundError'>, returning errno 2.
+Traceback (most recent call last):
+  File "/home/pranay/Documents/SOFTENG_370/A2/Part1/fuse.py", line 731, in _wrapper
+    return func(*args, **kwargs) or 0
+  File "/home/pranay/Documents/SOFTENG_370/A2/Part1/fuse.py", line 771, in getattr
+    return self.fgetattr(path, buf, None)
+  File "/home/pranay/Documents/SOFTENG_370/A2/Part1/fuse.py", line 1024, in fgetattr
+    attrs = self.operations('getattr', self._decode_optional_path(path), fh)
+  File "/home/pranay/Documents/SOFTENG_370/A2/Part1/fuse.py", line 1240, in __call__
+    ret = getattr(self, op)(path, *args)
+  File "/home/pranay/Documents/SOFTENG_370/A2/Part1/passthrough.py", line 43, in getattr
+    st = os.lstat(full_path)
+FileNotFoundError: [Errno 2] No such file or directory: 'source/newfile'
+DEBUG:fuse.log-mixin:-> create /newfile (33204,)
+DEBUG:fuse.log-mixin:<- create 4
+DEBUG:fuse.log-mixin:-> getattr /newfile (4,)
+DEBUG:fuse.log-mixin:<- getattr {'st_atime': 1602036834.4762814, 'st_ctime': 1602036834.4762814, 'st_gid': 1000, 'st_mode': 33204, 'st_mtime': 1602036834.4762814, 'st_nlink': 1, 'st_size': 0, 'st_uid': 1000}
+DEBUG:fuse.log-mixin:-> flush /newfile (4,)
+DEBUG:fuse.log-mixin:<- flush None
+
+
+The command first gets the file attributes associated with "/". In this scenario, "/" is the "mount" directory. Once the file attributes of the "mount" directory are returned, the system then checks access for "newfile" and gets the attributes associated with "newfile". However, "getattr" method returns a FileNotFoundError (Errno 2) as the file "newfile" does not yet exist in the "mount" directory. As a result, the "create" method is called which creates a file named "newfile" and returns the number 4 as the file id. The system then gets the attributes of the file named "newfile" which also has a file id of 4. Finally, the "flush" method is called which flushes the internal buffer for "newfile". In other words, the system forces the data to be written "newfile" immediately. As the "flush" method returns "None", this means the flushing of the internal buffer was successful. 
+
+
+#### Command 3: hello world ####
+
+DEBUG:fuse.log-mixin:-> getxattr /newfile ('security.capability',)
+DEBUG:fuse.log-mixin:<- getxattr '[Errno 95] Operation not supported'
+DEBUG:fuse:FUSE operation getxattr raised a <class 'fuse.FuseOSError'>, returning errno 95.
+Traceback (most recent call last):
+  File "/home/pranay/Documents/SOFTENG_370/A2/Part1/fuse.py", line 731, in _wrapper
+    return func(*args, **kwargs) or 0
+  File "/home/pranay/Documents/SOFTENG_370/A2/Part1/fuse.py", line 906, in getxattr
+    ret = self.operations('getxattr', path.decode(self.encoding),
+  File "/home/pranay/Documents/SOFTENG_370/A2/Part1/fuse.py", line 1240, in __call__
+    ret = getattr(self, op)(path, *args)
+  File "/home/pranay/Documents/SOFTENG_370/A2/Part1/fuse.py", line 1124, in getxattr
+    raise FuseOSError(ENOTSUP)
+fuse.FuseOSError: [Errno 95] Operation not supported
+DEBUG:fuse.log-mixin:-> write /newfile (b'hello world\n', 0, 4)
+DEBUG:fuse.log-mixin:<- write 12
+
+
+The command first tries to get security information of the "newfile" by calling "getxattr" method. However, "getxattr" method returns an "Operation Not Supported" error (Errno 95). In other words, the system tries to get security information of "newfile" and fails resulting in the error code 95 being returned. The system then writes the text "hello world\n" in a file which has a file id of 4 and the name "newfile". The number "0" in the "write" method call indicates the number of bytes of information the file had before it is written to. In other words, before writing "hello world\n" to "newfile", it had 0 bytes of information. Finally, the "write" method returns the number 12, indicating 12 bytes of information was written to "newfile".
+
+#### Command 4: ^D ####
+
+DEBUG:fuse.log-mixin:-> flush /newfile (4,)
+DEBUG:fuse.log-mixin:<- flush None
+DEBUG:fuse.log-mixin:-> release /newfile (4,)
+DEBUG:fuse.log-mixin:<- release None
+
+
+For this command, the "flush" method is called which flushes the internal buffer of a file with the name "newfile" which has a file id of 4. As the "flush" method returns "None", this means the flushing of "newfile" was successful. The "release" method is called to close the file "newfile" which has a file id of 4. As "release" method returns "None", this means that "newfile" is closed. Therefore, the file "newfile" can now be accessed from the "mount" directory and the "source" directory. 
+
+
+#### Command 5: cd ../ ####
+
+DEBUG:fuse.log-mixin:-> getattr / (None,)
+DEBUG:fuse.log-mixin:<- getattr {'st_atime': 1602034712.3545358, 'st_ctime': 1602036834.4762814, 'st_gid': 1000, 'st_mode': 16893, 'st_mtime': 1602036834.4762814, 'st_nlink': 3, 'st_size': 4096, 'st_uid': 1000}
+
+
+The command gets the file attributes associated with "/". In this scenario, "/" is the "Part1" directory. "Part1" directory is the directory which is one level above the "mount" directory. The output of the "getattr" method is the key value pairs of the attributes of the "Part1" directory. The meaning of each attribute is explained in Question 2, Command 1.
+
+
+#### Command 6: fusermount -u mount ####
+
+DEBUG:fuse.log-mixin:-> destroy / ()
+DEBUG:fuse.log-mixin:<- destroy None
+
+The “destroy” method terminates the current mounted process. The “destroy” method returns "None" which means the termination of the mount process was successful. This means that the directory "mount" is unmounted and is dereferenced from the "source" directory. When checking the contents of the "source" and "mount" directories, we can now see that the "source" directory has an additional file called "newfile" which contains the text "hello world\n". Furthermore, the "mount" directory is now empty, indicating that the unmounting of the “mount” directory was successful.  
+
+
+##################
+Question 3:
+##################
+
+
+#######  Method: getattr  ######
+
+The "getattr" method gets the file attributes of a file or directory in the memory file system. The if-statement checks whether the file path provided is valid (i.e. is the path provided a key in the "files" dictionary?). If the path is not valid (i.e. the provided path is not a key in the "files" dictionary) then the memory file system raises an error. Otherwise, the memory file system does contain the specified file path. Therefore, the file attributes of the file are returned by the "getattr" method.
+
+
+
+######   Method: readdir ######
+
+The "readdir" method reads and returns all the files in a specific directory. The "path" method argument represents the path to the directory that should be read. The method returns a list. The list contains the parent directory (".."), the current directory ("."), and all the files in the current directory without the leading forward slash ("/").   
+
+
+######   Method: open  ######
+
+The "open" method opens a specific file in the memory file system. The "path" method argument represents the path to a file that needs to be opened. The "open" method increments the file descriptor (fd) attribute. This incrementation of the file descriptor creates a new unique file identifier for the input file. The "open" method then returns the new unique file identifier.  
+
+
+
+######   Method: create  ######
+
+The "create" method creates a new file or overrides an existing file in the memory file system. The "path" method argument represents the name and location of the new file that should be created. The "mode" method argument is the access mode (st_mode) of the new file. The "path" method argument is used as the unique key in the "files" dictionary where its associated value is another dictionary which represents file attributes (mode, links, size, and times) of the new file. The creation, modification, and access times of the new file are sent to the current time. Finally, the "create" method increments the unique file descriptor number and returns it.
+
+
+######   Method: unlink  #######
+
+The "unlink" method removes or unlinks a specific file. The path method argument represents a path to a file (file path) which needs to be removed or unlinked. The "unlink" method removes or pops out a file with the path, "path" (where "path" is the input method argument), from the "files" dictionary.
+
+
+######   Method: write  ########
+
+The "write" method writes some data to a file starting from a specific "offset". The "offset" input method argument is used to determine exactly where the writing of the new data should start (i.e. "offset" determines the starting point of where the data should be written). The "data" input method argument is the actual data that needs to be written to the file. The “path” input method argument is the file that the data should be written to. For the method to add the new data to the file, it first needs to retrieve the data from the beginning of the file to the "offset". The "write" method does this by using the "path" method argument as the key for the "data" dictionary and "offset" as the ending point (i.e. the point at which the new data should be added). Once the data in the file is retrieved, the method appends the new data to the previously retrieved data and adds the updated data back to the "data" dictionary (where the key is once again the input method argument "path"). Lastly, the "write" method updates the total size of the file (st_size) and then returns the total number of bytes written to the file.
+
+
+######   Method: read   ########
+
+The "read" method reads a specific amount of data from the file path. The "offset" input method argument is used to determine exactly where the reading of the data should start (i.e. "offset" determines the starting point of where the data should be read). The "size" input method argument determines the amount of data that should be read. The "read" method uses the "data" dictionary to return some data. The "path" input method argument is used as the key for the "data" dictionary where the starting point of the data is the "offset" and the ending point is the point at which the size of the data read is equal to the input method argument "size" (i.e. offset + size). Once the data that needs to be read is retrieved, the "read" method returns it. 
+
+
+
